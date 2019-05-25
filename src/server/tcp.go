@@ -20,6 +20,11 @@ func (c tcpConn) RemoteAddr() string {
 	return c.conn.RemoteAddr().String()
 }
 
+// Read implements the io.Read
+func (c tcpConn) Read(buf []byte) (n int, err error) {
+	return c.conn.Read(buf)
+}
+
 // WriteMsg implements the Conn interface
 func (c tcpConn) WriteMsg(msg string, byteOrder binary.ByteOrder, timeout time.Duration) error {
 	_, err := c.conn.Write([]byte(msg))

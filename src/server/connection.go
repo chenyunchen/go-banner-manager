@@ -16,6 +16,7 @@ type Packet struct {
 type Conn interface {
 	LocalAddr() string
 	RemoteAddr() string
+	io.Reader
 	io.Writer
 	WriteMsg(msg string, byteOrder binary.ByteOrder, timeout time.Duration) error
 	Close() error

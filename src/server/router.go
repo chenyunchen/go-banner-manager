@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -63,11 +64,58 @@ func (r *router) HandleConnected(f func(conn Conn)) error {
 
 // OnConnected implements the EventHandler interface
 func (r *router) OnConnected(conn Conn) {
-	if r.onConnected != nil {
-		r.onConnected(conn)
-	}
+	for {
+		var (
+			contentSize uint32
+			isHead      bool = true
+			buffer           = bytes.NewBuffer(make([]byte, 0, 200))
+			bytes            = make([]byte, 200)
+			head             = make([]byte, 4)
+			content          = make([]byte, 200)
+		)
+		readLen, err := conn.Read(bytes)
+		if err != nil {
+			return
+		}
+		_, err = buffer.Write(bytes[0:readLen])
+		if err != nil {
+			log.Printf("Server|BufferWrite|error:%v", err)
+			return
+		}
+		for {
+			if isHead {
+				if buffer.Len() >= 2 {
+					_, err := buffer.Read(head)
+					if err != nil {
+						log.Printf("Server|BufferRead|error:%v", err)
+						return
+					}
+					contentSize = binary.BigEndian.Uint32(head)
+					isHead = false
+				} else {
+					break
+				}
+			}
+			if !isHead {
+				if buffer.Len() >= int(contentSize) {
+					_, err := buffer.Read(content[:contentSize])
+					if err != nil {
+						log.Printf("Server|BufferRead|error:%v", err)
+						return
+					}
+					input := Packet{
+						Content: content[:contentSize],
+						Conn:    conn,
+					}
+					r.OnPacket(&input)
+					isHead = true
+				} else {
+					break
+				}
+			}
 
-	return
+		}
+	}
 }
 
 // OnDisconnected implements the EventHandler interface

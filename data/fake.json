@@ -1,0 +1,37 @@
+[
+  {
+    "serial": 1,
+    "event": "Mercari Promotion",
+    "text": "20% off",
+    "image": "https://www.mercari.com/jp/assets/img/common/jp/ogp_new.png",
+    "url": "https://www.mercari.com"
+  },
+  {
+    "serial": 2,
+    "event": "Merpay Reward Point",
+    "text": "2% every transaction",
+    "image": "https://jp.merpay.com/assets/homeServiceTeaser-summary.png",
+    "url": "https://jp.merpay.com"
+  },
+  {
+    "serial": 3,
+    "event": "Red Cross Donation",
+    "text": "Hokkaido earthquakes 2018",
+    "image": "http://www.jrc.or.jp/english/img/Hokkaidoearthquakeeng.jpg",
+    "url": "http://www.jrc.or.jp/english/"
+  },
+  {
+    "serial": 4,
+    "event": "2020 Tokyo Olympics",
+    "text": "Buy ticket",
+    "image": "https://tokyo2020.org/en/assets/upload/20180718-01-top.jpg",
+    "url": "https://tokyo2020.org/en/"
+  },
+  {
+    "serial": 5,
+    "event": "Tokyo Golang Developers",
+    "text": "Golang Hackathon",
+    "image": "https://secure.meetupstatic.com/photos/event/2/8/3/4/600_479470292.jpeg",
+    "url": "https://www.meetup.com/Tokyo-Golang-Developers/"
+  }
+]
