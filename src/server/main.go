@@ -1,6 +1,9 @@
 package main
 
 import (
+	"4670e1812919d92b8cf4e33ac38bc40e449521da/src/entity"
+	"bytes"
+	"encoding/binary"
 	"flag"
 	"log"
 	"net"
@@ -10,10 +13,6 @@ import (
 
 	"4670e1812919d92b8cf4e33ac38bc40e449521da/src/service"
 )
-
-type server struct {
-	service *service.Service
-}
 
 func main() {
 	var tcpAddr string
@@ -48,20 +47,75 @@ func main() {
 	}(sigc, lis)
 
 	// Init the service for handler to use
-	s := &server{
-		service: service.New(),
-	}
+	sp := service.New()
+
+	// Init the router
+	router := NewRouter(sp)
+	router.Handle(entity.GetBannersRequest_CMD, NewHandler(getBannersHandler))
 
 	for {
 		conn, err := lis.Accept()
 		if err != nil {
-			log.Fatalf("Server|ListenerAccept|error:%v", err)
-			continue
+			log.Printf("Server|ListenerAccept|error:%v", err)
+			break
 		}
 
-		go s.handleConnection(conn)
+		go handleConnection(conn, router)
 	}
 
 	<-stop
 	os.Exit(0)
+}
+
+// TODO: move tcp to outside
+func handleConnection(conn net.Conn, router *router) {
+	for {
+		var (
+			contentSize uint32
+			isHead      bool = true
+			buffer           = bytes.NewBuffer(make([]byte, 0, 200))
+			bytes            = make([]byte, 200)
+			head             = make([]byte, 4)
+			content          = make([]byte, 200)
+		)
+		readLen, err := conn.Read(bytes)
+		if err != nil {
+			return
+		}
+		_, err = buffer.Write(bytes[0:readLen])
+		if err != nil {
+			log.Printf("Server|BufferWrite|error:%v", err)
+			return
+		}
+		for {
+			if isHead {
+				if buffer.Len() >= 2 {
+					_, err := buffer.Read(head)
+					if err != nil {
+						log.Printf("Server|BufferRead|error:%v", err)
+						return
+					}
+					contentSize = binary.BigEndian.Uint32(head)
+					isHead = false
+				} else {
+					break
+				}
+			}
+			if !isHead {
+				if buffer.Len() >= int(contentSize) {
+					_, err := buffer.Read(content[:contentSize])
+					if err != nil {
+						log.Printf("Server|BufferRead|error:%v", err)
+						return
+					}
+					input := NewTCPPacket(content[:contentSize], conn)
+					router.OnPacket(&input)
+					isHead = true
+				} else {
+					break
+				}
+			}
+
+		}
+	}
 }
