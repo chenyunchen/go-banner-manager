@@ -37,6 +37,15 @@ func updateBannerHandler(ctx *context) {
 	service, conn, content := ctx.service, ctx.input.Conn, ctx.input.Content
 	defer conn.Close()
 
+	// TODO: Add debug mode for QA and filter if two banner display in same period.
+	// debug := false
+	// for _, addr := range service.Config.WhiteList {
+	// 	if addr == conn.RemoteAddr() {
+	// 		debug = true
+	// 		break
+	// 	}
+	// }
+
 	updateBannerRequest := entity.UpdateBannerRequest{}
 	err := json.Unmarshal(content, &updateBannerRequest)
 	if err != nil {

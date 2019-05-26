@@ -7,7 +7,8 @@ import (
 )
 
 type Config struct {
-	Data string `json:"data"`
+	Data      string   `json:"data"`
+	WhiteList []string `json:"whiteList"`
 }
 
 func Read(path string) (c Config, err error) {

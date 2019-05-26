@@ -12,12 +12,12 @@ type tcpConn struct {
 
 // LocalAddr implements the Conn interface
 func (c tcpConn) LocalAddr() string {
-	return c.conn.LocalAddr().String()
+	return c.conn.LocalAddr().(*net.TCPAddr).IP.String()
 }
 
 // RemoteAddr implements the Conn interface
 func (c tcpConn) RemoteAddr() string {
-	return c.conn.RemoteAddr().String()
+	return c.conn.RemoteAddr().(*net.TCPAddr).IP.String()
 }
 
 // Read implements the io.Read
