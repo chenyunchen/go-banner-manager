@@ -1,7 +1,6 @@
 package main
 
 import (
-	"4670e1812919d92b8cf4e33ac38bc40e449521da/src/entity"
 	"flag"
 	"log"
 	"net"
@@ -9,16 +8,16 @@ import (
 	"os/signal"
 	"syscall"
 
+	"4670e1812919d92b8cf4e33ac38bc40e449521da/src/entity"
 	"4670e1812919d92b8cf4e33ac38bc40e449521da/src/service"
 )
 
 func main() {
+	var config string
 	var tcpAddr string
-	flag.StringVar(&tcpAddr, "tcp", "", "Run as a TCP server and listen on target address.")
+	flag.StringVar(&tcpAddr, "tcp", "0.0.0.0:8080", "Run as a TCP server and listen on target address.")
+	flag.StringVar(&config, "config", "./config/local.json", "Config file path.")
 	flag.Parse()
-	if tcpAddr == "" {
-		log.Fatalf("You must fill the TCP target address to listen.")
-	}
 
 	// Listen TCP target address
 	log.Println("Starting tcp server.")
@@ -45,11 +44,15 @@ func main() {
 	}(sigc, lis)
 
 	// Init the service for handler to use
-	sp := service.New()
+	sp := service.New(config)
 
 	// Init the router
 	router := NewRouter(sp)
 	router.Handle(entity.GetBannersRequest_CMD, NewHandler(getBannersHandler))
+	router.Handle(entity.UpdateBannerRequest_CMD, NewHandler(updateBannerHandler))
+	router.Handle(entity.UpdateBannerStartedTimeRequest_CMD, NewHandler(updateBannerStartedTimeHandler))
+	router.Handle(entity.UpdateBannerExpiredTimeRequest_CMD, NewHandler(updateBannerExpiredTimeHandler))
+	router.Handle(entity.ClearAllBannerTimersRequest_CMD, NewHandler(clearAllBannerTimersHandler))
 
 	for {
 		conn, err := lis.Accept()

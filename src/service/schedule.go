@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type fn func(string)
+type fn func(uint16)
 
 //  ScheduledJob represents a job service info
 type ScheduledJobService struct {
@@ -21,13 +21,21 @@ func NewScheduledJobService() *ScheduledJobService {
 }
 
 // AddJob creates a new job to the service
-func (s *ScheduledJobService) AddJob(route, data string, t time.Time) error {
+func (s *ScheduledJobService) AddJob(route string, serial uint16, tag string, t time.Time) error {
 	handler, ok := s.handlers[route]
 	if !ok {
 		return errors.New("ScheduledJobService|AddJob|HandlerIsNotExist")
 	}
 
-	scheduledJob := NewScheduledJob(data, handler)
+	for _, job := range s.jobs {
+		if job.serial == serial && job.tag == tag {
+			job.StopTimer()
+			job.SetTimer(t)
+			return nil
+		}
+	}
+
+	scheduledJob := NewScheduledJob(serial, tag, handler)
 	scheduledJob.SetTimer(t)
 	s.jobs = append(s.jobs, scheduledJob)
 
@@ -51,15 +59,16 @@ func (s *ScheduledJobService) ClearAllJobs() {
 
 // ScheduledJob represents a single job info
 type ScheduledJob struct {
-	data     string
+	serial   uint16
+	tag      string
 	handler  fn
 	canceled chan bool
 	once     sync.Once
 }
 
 // NewRouter creates a new scheduled job
-func NewScheduledJob(data string, f fn) *ScheduledJob {
-	return &ScheduledJob{data: data, handler: f}
+func NewScheduledJob(serial uint16, tag string, f fn) *ScheduledJob {
+	return &ScheduledJob{serial: serial, tag: tag, handler: f}
 }
 
 // SetTimer creates a timer for the job
@@ -72,7 +81,7 @@ func (s *ScheduledJob) SetTimer(t time.Time) {
 
 		select {
 		case <-timer.C:
-			s.handler(s.data)
+			s.handler(s.serial)
 		case <-canceled:
 			return
 		}

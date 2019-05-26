@@ -1,13 +1,13 @@
 package main
 
 import (
+	"4670e1812919d92b8cf4e33ac38bc40e449521da/src/service"
 	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"log"
-
-	"4670e1812919d92b8cf4e33ac38bc40e449521da/src/service"
+	"time"
 )
 
 type fn func(*context)
@@ -84,7 +84,7 @@ func (r *router) OnConnected(conn Conn) {
 		}
 		for {
 			if isHead {
-				if buffer.Len() >= 2 {
+				if buffer.Len() >= 4 {
 					_, err := buffer.Read(head)
 					if err != nil {
 						log.Printf("Server|BufferRead|error:%v", err)
@@ -97,6 +97,10 @@ func (r *router) OnConnected(conn Conn) {
 				}
 			}
 			if !isHead {
+				// Wait for the buffer if network delay
+				time.Sleep(200 * time.Millisecond)
+				log.Printf("Packet Receive: %v bytes\n", buffer.Len())
+				log.Printf("TCP Shoud Send: %v bytes\n", contentSize)
 				if buffer.Len() >= int(contentSize) {
 					_, err := buffer.Read(content[:contentSize])
 					if err != nil {

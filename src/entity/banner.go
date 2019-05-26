@@ -2,13 +2,26 @@ package entity
 
 // CMD
 const (
-	GetBannersRequest_CMD   = 0x0001
-	UpdateBannerRequest_CMD = 0x0002
+	GetBannersRequest_CMD              = 0x0001
+	UpdateBannerRequest_CMD            = 0x0002
+	UpdateBannerStartedTimeRequest_CMD = 0x0003
+	UpdateBannerExpiredTimeRequest_CMD = 0x0004
+	ClearAllBannerTimersRequest_CMD    = 0x0005
 )
 
 type UpdateBannerRequest struct {
 	Serial      uint16 `json:"serial"`
 	StartedTime uint32 `json:"startedTime"`
+	ExpiredTime uint32 `json:"expiredTime"`
+}
+
+type UpdateBannerStartedTimeRequest struct {
+	Serial      uint16 `json:"serial"`
+	StartedTime uint32 `json:"startedTime"`
+}
+
+type UpdateBannerExpiredTimeRequest struct {
+	Serial      uint16 `json:"serial"`
 	ExpiredTime uint32 `json:"expiredTime"`
 }
 

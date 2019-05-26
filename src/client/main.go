@@ -6,19 +6,25 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"os"
-	"time"
+	"strconv"
 )
 
 func main() {
+	var action string
 	var tcpAddr string
-	flag.StringVar(&tcpAddr, "tcp", "", "Run as a TCP client to connect target address.")
+	var serial string
+	var start string
+	var expire string
+	flag.StringVar(&tcpAddr, "tcp", "0.0.0.0:8080", "Run as a TCP client to connect target address.")
+	flag.StringVar(&action, "action", "get", "Run a command to control the banner-manager.")
+	flag.StringVar(&serial, "serial", "", "Decide which the banner display. (Serial Number)")
+	flag.StringVar(&start, "start", "", "Decide when the banner display. (Unix Timestamp)")
+	flag.StringVar(&expire, "expire", "", "Decide when the banner expire. (Unix Timestamp)")
 	flag.Parse()
-	if tcpAddr == "" {
-		log.Fatalf("You must fill the TCP target address to connect.")
-	}
 
 	// Connect TCP target address
 	conn, err := net.Dial("tcp", tcpAddr)
@@ -28,26 +34,134 @@ func main() {
 	}
 	defer conn.Close()
 
-	// TODO: Write Test
-	data := entity.UpdateBannerRequest{
-		Serial:      1,
-		StartedTime: uint32(time.Now().Unix()),
-		ExpiredTime: uint32(time.Now().Unix()),
+	switch action {
+	case "get":
+		getBanners(conn)
+	case "update":
+		if serial == "" || start == "" || expire == "" {
+			log.Fatalf("You should fill the serial number, start time and expire time.")
+		}
+		serial, err := strconv.ParseUint(serial, 10, 64)
+		if err != nil {
+			log.Fatalf("Please fill the corret serial number.")
+		}
+		startedTime, err := strconv.ParseUint(start, 10, 64)
+		if err != nil {
+			log.Fatalf("Please fill the corret start time number.")
+		}
+		expiredTime, err := strconv.ParseUint(expire, 10, 64)
+		if err != nil {
+			log.Fatalf("Please fill the corret start time number.")
+		}
+
+		updateBanner(conn, uint16(serial), uint32(startedTime), uint32(expiredTime))
+	case "update_start":
+		if serial == "" || start == "" {
+			log.Fatalf("You should fill the serial number and start time.")
+		}
+		serial, err := strconv.ParseUint(serial, 10, 64)
+		if err != nil {
+			log.Fatalf("Please fill the corret serial number.")
+		}
+		startedTime, err := strconv.ParseUint(start, 10, 64)
+		if err != nil {
+			log.Fatalf("Please fill the corret start time number.")
+		}
+
+		updateBannerStartedTime(conn, uint16(serial), uint32(startedTime))
+	case "update_expire":
+		if serial == "" || expire == "" {
+			log.Fatalf("You should fill the serial number and expire time.")
+		}
+		serial, err := strconv.ParseUint(serial, 10, 64)
+		if err != nil {
+			log.Fatalf("Please fill the corret serial number.")
+		}
+		expiredTime, err := strconv.ParseUint(start, 10, 64)
+		if err != nil {
+			log.Fatalf("Please fill the corret expire time number.")
+		}
+
+		updateBannerExpiredTime(conn, uint16(serial), uint32(expiredTime))
+	case "clear_all_timers":
+		clearAllBannerTimers(conn)
 	}
-	b, _ := json.Marshal(data)
 
-	size := make([]byte, 4)
-	binary.BigEndian.PutUint32(size, uint32(2+len(b)))
-	conn.Write(size)
-
-	output := make([]byte, 2)
-	binary.BigEndian.PutUint16(output, uint16(entity.GetBannersRequest_CMD))
-	conn.Write(append(output, b...))
-
-	// TODO: Read Test
 	scannerConn := bufio.NewScanner(conn)
 	for scannerConn.Scan() {
 		log.Println("Server sends: " + scannerConn.Text())
 		break
 	}
+}
+
+func getBanners(conn net.Conn) {
+	size := make([]byte, 4)
+	binary.BigEndian.PutUint32(size, uint32(2))
+	conn.Write(size)
+
+	cmd := make([]byte, 2)
+	binary.BigEndian.PutUint16(cmd, uint16(entity.GetBannersRequest_CMD))
+	conn.Write(cmd)
+}
+
+func updateBanner(conn net.Conn, serial uint16, startedTime, expiredTime uint32) {
+	data := entity.UpdateBannerRequest{
+		Serial:      serial,
+		StartedTime: startedTime,
+		ExpiredTime: expiredTime,
+	}
+	b, _ := json.Marshal(data)
+
+	size := make([]byte, 4)
+	binary.BigEndian.PutUint32(size, uint32(2+len(b)))
+	fmt.Println(uint32(2 + len(b)))
+	conn.Write(size)
+
+	output := make([]byte, 2)
+	binary.BigEndian.PutUint16(output, uint16(entity.UpdateBannerRequest_CMD))
+	conn.Write(append(output, b...))
+}
+
+func updateBannerStartedTime(conn net.Conn, serial uint16, startedTime uint32) {
+	data := entity.UpdateBannerStartedTimeRequest{
+		Serial:      serial,
+		StartedTime: startedTime,
+	}
+	b, _ := json.Marshal(data)
+
+	size := make([]byte, 4)
+	binary.BigEndian.PutUint32(size, uint32(2+len(b)))
+	fmt.Println(uint32(2 + len(b)))
+	conn.Write(size)
+
+	output := make([]byte, 2)
+	binary.BigEndian.PutUint16(output, uint16(entity.UpdateBannerStartedTimeRequest_CMD))
+	conn.Write(append(output, b...))
+}
+
+func updateBannerExpiredTime(conn net.Conn, serial uint16, expiredTime uint32) {
+	data := entity.UpdateBannerExpiredTimeRequest{
+		Serial:      serial,
+		ExpiredTime: expiredTime,
+	}
+	b, _ := json.Marshal(data)
+
+	size := make([]byte, 4)
+	binary.BigEndian.PutUint32(size, uint32(2+len(b)))
+	fmt.Println(uint32(2 + len(b)))
+	conn.Write(size)
+
+	output := make([]byte, 2)
+	binary.BigEndian.PutUint16(output, uint16(entity.UpdateBannerExpiredTimeRequest_CMD))
+	conn.Write(append(output, b...))
+}
+
+func clearAllBannerTimers(conn net.Conn) {
+	size := make([]byte, 4)
+	binary.BigEndian.PutUint32(size, uint32(2))
+	conn.Write(size)
+
+	cmd := make([]byte, 2)
+	binary.BigEndian.PutUint16(cmd, uint16(entity.ClearAllBannerTimersRequest_CMD))
+	conn.Write(cmd)
 }
