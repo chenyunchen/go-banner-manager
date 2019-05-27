@@ -14,13 +14,46 @@ func getBannersHandler(ctx *context) {
 
 	banners := []entity.Banner{}
 	for _, banner := range service.DisplayBanner {
+		serial := banner.GetSerial()
+		startedTime, expiredTime := service.Schedule.GetJobPeriods(serial)
 		banners = append(banners, entity.Banner{
-			Serial: banner.GetSerial(),
-			Event:  banner.GetEvent(),
-			Text:   banner.GetText(),
-			Image:  banner.GetImage(),
-			URL:    banner.GetURL(),
+			Serial:      serial,
+			Event:       banner.GetEvent(),
+			Text:        banner.GetText(),
+			Image:       banner.GetImage(),
+			URL:         banner.GetURL(),
+			StartedTime: startedTime,
+			ExpiredTime: expiredTime,
 		})
+	}
+
+	debug := false
+	for _, addr := range service.Config.WhiteList {
+		if addr == conn.RemoteAddr() {
+			debug = true
+			break
+		}
+	}
+
+	if debug {
+		for _, serial := range service.Schedule.GetAllInActiveJobSerials() {
+			startedTime, expiredTime := service.Schedule.GetJobPeriods(serial)
+			banner, err := service.DataManager.GetBanner(serial)
+			if err != nil {
+				log.Printf("getBannersHandler|service|GetBanner|error:%v", err)
+				continue
+			}
+
+			banners = append(banners, entity.Banner{
+				Serial:      serial,
+				Event:       banner.GetEvent(),
+				Text:        banner.GetText(),
+				Image:       banner.GetImage(),
+				URL:         banner.GetURL(),
+				StartedTime: startedTime,
+				ExpiredTime: expiredTime,
+			})
+		}
 	}
 
 	b, err := json.Marshal(banners)
@@ -28,6 +61,7 @@ func getBannersHandler(ctx *context) {
 		log.Printf("Server|getBannersHandler|JsonMarshal|error:%v", err)
 		return
 	}
+
 	conn.Write(b)
 
 	return
@@ -37,25 +71,32 @@ func updateBannerHandler(ctx *context) {
 	service, conn, content := ctx.service, ctx.input.Conn, ctx.input.Content
 	defer conn.Close()
 
-	// TODO: Add debug mode for QA and filter if two banner display in same period.
-	// debug := false
-	// for _, addr := range service.Config.WhiteList {
-	// 	if addr == conn.RemoteAddr() {
-	// 		debug = true
-	// 		break
-	// 	}
-	// }
-
 	updateBannerRequest := entity.UpdateBannerRequest{}
 	err := json.Unmarshal(content, &updateBannerRequest)
 	if err != nil {
 		log.Printf("Server|updateBannerHandler|JsonUnmarshal|error:%v", err)
 	}
 
-	timestamp := time.Unix(int64(updateBannerRequest.StartedTime), 0)
-	service.Schedule.AddJob("DisplayBanner", updateBannerRequest.Serial, "start", timestamp)
-	timestamp = time.Unix(int64(updateBannerRequest.ExpiredTime), 0)
-	service.Schedule.AddJob("HideBanner", updateBannerRequest.Serial, "expire", timestamp)
+	startedTime := time.Unix(int64(updateBannerRequest.StartedTime), 0)
+	expiredTime := time.Unix(int64(updateBannerRequest.ExpiredTime), 0)
+
+	debug := false
+	for _, addr := range service.Config.WhiteList {
+		if addr == conn.RemoteAddr() {
+			debug = true
+			break
+		}
+	}
+
+	isOverlap := service.Schedule.CheckJobPeriodsOverlap(debug, updateBannerRequest.Serial, startedTime, expiredTime)
+	if !isOverlap {
+		service.Schedule.AddJob("DisplayBanner", updateBannerRequest.Serial, "start", startedTime)
+		service.Schedule.AddJob("HideBanner", updateBannerRequest.Serial, "expire", expiredTime)
+	}
+
+	// if the display banner update immediately, delay 200ms to get the result
+	time.Sleep(200 * time.Millisecond)
+	getBannersHandler(ctx)
 
 	return
 }
@@ -71,7 +112,23 @@ func updateBannerStartedTimeHandler(ctx *context) {
 	}
 
 	timestamp := time.Unix(int64(updateBannerStartedTimeRequest.StartedTime), 0)
-	service.Schedule.AddJob("DisplayBanner", updateBannerStartedTimeRequest.Serial, "start", timestamp)
+
+	debug := false
+	for _, addr := range service.Config.WhiteList {
+		if addr == conn.RemoteAddr() {
+			debug = true
+			break
+		}
+	}
+
+	isOverlap := service.Schedule.CheckJobPeriodOverlap(debug, updateBannerStartedTimeRequest.Serial, "start", timestamp)
+	if !isOverlap {
+		service.Schedule.AddJob("DisplayBanner", updateBannerStartedTimeRequest.Serial, "start", timestamp)
+	}
+
+	// if the display banner update immediately, delay 200ms to get the result
+	time.Sleep(200 * time.Millisecond)
+	getBannersHandler(ctx)
 
 	return
 }
@@ -87,7 +144,23 @@ func updateBannerExpiredTimeHandler(ctx *context) {
 	}
 
 	timestamp := time.Unix(int64(updateBannerExpiredTimeRequest.ExpiredTime), 0)
-	service.Schedule.AddJob("HideBanner", updateBannerExpiredTimeRequest.Serial, "expire", timestamp)
+
+	debug := false
+	for _, addr := range service.Config.WhiteList {
+		if addr == conn.RemoteAddr() {
+			debug = true
+			break
+		}
+	}
+
+	isOverlap := service.Schedule.CheckJobPeriodOverlap(debug, updateBannerExpiredTimeRequest.Serial, "start", timestamp)
+	if !isOverlap {
+		service.Schedule.AddJob("HideBanner", updateBannerExpiredTimeRequest.Serial, "expire", timestamp)
+	}
+
+	// if the display banner update immediately, delay 200ms to get the result
+	time.Sleep(200 * time.Millisecond)
+	getBannersHandler(ctx)
 
 	return
 }
@@ -97,6 +170,10 @@ func clearAllBannerTimersHandler(ctx *context) {
 	defer conn.Close()
 
 	service.Schedule.ClearAllJobs()
+
+	// if the display banner update immediately, delay 200ms to get the result
+	time.Sleep(200 * time.Millisecond)
+	getBannersHandler(ctx)
 
 	return
 }

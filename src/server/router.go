@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"time"
 )
 
 type fn func(*context)
@@ -93,14 +92,10 @@ func (r *router) OnConnected(conn Conn) {
 					contentSize = binary.BigEndian.Uint32(head)
 					isHead = false
 				} else {
-					break
+					return
 				}
 			}
 			if !isHead {
-				// Wait for the buffer if network delay
-				time.Sleep(200 * time.Millisecond)
-				log.Printf("Packet Receive: %v bytes\n", buffer.Len())
-				log.Printf("TCP Shoud Send: %v bytes\n", contentSize)
 				if buffer.Len() >= int(contentSize) {
 					_, err := buffer.Read(content[:contentSize])
 					if err != nil {
@@ -114,7 +109,7 @@ func (r *router) OnConnected(conn Conn) {
 					r.OnPacket(&input)
 					isHead = true
 				} else {
-					break
+					return
 				}
 			}
 

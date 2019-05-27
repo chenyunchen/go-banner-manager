@@ -165,11 +165,13 @@ Response
 ```json
 [
 	{
-		"serial": <serial(uint16)>,
-		"event":  <event(string)>,
-		"text":   <text(string)>,
-		"image":  <image(string)>,
-		"url":    <url(string)>,
+		"serial":      <serial(uint16)>,
+		"event":       <event(string)>,
+		"text":        <text(string)>,
+		"image":       <image(string)>,
+		"url":         <url(string)>,
+		"startedTime": <url(string)>,
+		"expiredTime": <url(string)>,
 	}
 ]
 ```

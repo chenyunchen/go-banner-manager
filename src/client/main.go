@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -89,7 +88,18 @@ func main() {
 
 	scannerConn := bufio.NewScanner(conn)
 	for scannerConn.Scan() {
-		log.Println("Server sends: " + scannerConn.Text())
+		banners := []entity.Banner{}
+		json.Unmarshal(scannerConn.Bytes(), &banners)
+		log.Println("Display Banner:")
+		for _, banner := range banners {
+			log.Printf("Serial: %d\n", banner.Serial)
+			log.Printf("Event: %s\n", banner.Event)
+			log.Printf("Text: %s\n", banner.Text)
+			log.Printf("Image: %s\n", banner.Image)
+			log.Printf("URL: %s\n", banner.URL)
+			log.Printf("Started Time: %s\n", banner.StartedTime)
+			log.Printf("Expired Time: %s\n", banner.ExpiredTime)
+		}
 		break
 	}
 }
@@ -114,7 +124,6 @@ func updateBanner(conn net.Conn, serial uint16, startedTime, expiredTime uint32)
 
 	size := make([]byte, 4)
 	binary.BigEndian.PutUint32(size, uint32(2+len(b)))
-	fmt.Println(uint32(2 + len(b)))
 	conn.Write(size)
 
 	output := make([]byte, 2)
@@ -131,7 +140,6 @@ func updateBannerStartedTime(conn net.Conn, serial uint16, startedTime uint32) {
 
 	size := make([]byte, 4)
 	binary.BigEndian.PutUint32(size, uint32(2+len(b)))
-	fmt.Println(uint32(2 + len(b)))
 	conn.Write(size)
 
 	output := make([]byte, 2)
@@ -148,7 +156,6 @@ func updateBannerExpiredTime(conn net.Conn, serial uint16, expiredTime uint32) {
 
 	size := make([]byte, 4)
 	binary.BigEndian.PutUint32(size, uint32(2+len(b)))
-	fmt.Println(uint32(2 + len(b)))
 	conn.Write(size)
 
 	output := make([]byte, 2)

@@ -26,11 +26,13 @@ type UpdateBannerExpiredTimeRequest struct {
 }
 
 type Banner struct {
-	Serial uint16 `json:"serial"`
-	Event  string `json:"event"`
-	Text   string `json:"text"`
-	Image  string `json:"image"`
-	URL    string `json:"url"`
+	Serial      uint16 `json:"serial"`
+	Event       string `json:"event"`
+	Text        string `json:"text"`
+	Image       string `json:"image"`
+	URL         string `json:"url"`
+	StartedTime string `json:"startedTime"`
+	ExpiredTime string `json:"expiredTime"`
 }
 
 func (b *Banner) GetSerial() uint16 {
