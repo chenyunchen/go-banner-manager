@@ -24,6 +24,11 @@ func NewScheduledJobService() *ScheduledJobService {
 
 // GetJobPeriods get a job periods
 func (s *ScheduledJobService) GetJobPeriods(serial uint16) (startedTime string, expiredTime string) {
+	_, ok := s.periods[serial]
+	if !ok {
+		return
+	}
+
 	return s.periods[serial][0].In(time.Local).String(), s.periods[serial][1].In(time.Local).String()
 }
 
@@ -43,7 +48,7 @@ func (s *ScheduledJobService) CheckJobPeriodOverlap(debug bool, serial uint16, t
 	_, ok := s.periods[serial]
 	if !ok {
 		s.periods[serial] = make([]time.Time, 2)
-		s.periods[serial][0] = time.Unix(1558891527, 0) // Jan 01 1970. (UTC)
+		s.periods[serial][0] = time.Unix(28800, 0)      // Jan 01 1970. (UTC)
 		s.periods[serial][1] = time.Unix(4102358400, 0) // Dec 31 2099. (UTC)
 	}
 

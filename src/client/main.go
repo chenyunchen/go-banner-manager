@@ -76,7 +76,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("Please fill the corret serial number.")
 		}
-		expiredTime, err := strconv.ParseUint(start, 10, 64)
+		expiredTime, err := strconv.ParseUint(expire, 10, 64)
 		if err != nil {
 			log.Fatalf("Please fill the corret expire time number.")
 		}
@@ -88,8 +88,13 @@ func main() {
 
 	scannerConn := bufio.NewScanner(conn)
 	for scannerConn.Scan() {
+		b := scannerConn.Bytes()
+		if len(b) <= 50 {
+			log.Println(string(b))
+			break
+		}
 		banners := []entity.Banner{}
-		json.Unmarshal(scannerConn.Bytes(), &banners)
+		json.Unmarshal(b, &banners)
 		log.Println("Display Banner:")
 		for _, banner := range banners {
 			log.Printf("Serial: %d\n", banner.Serial)

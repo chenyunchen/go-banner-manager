@@ -92,6 +92,9 @@ func updateBannerHandler(ctx *context) {
 	if !isOverlap {
 		service.Schedule.AddJob("DisplayBanner", updateBannerRequest.Serial, "start", startedTime)
 		service.Schedule.AddJob("HideBanner", updateBannerRequest.Serial, "expire", expiredTime)
+	} else {
+		conn.Write([]byte("Timestamp periods is overlap!"))
+		return
 	}
 
 	// if the display banner update immediately, delay 200ms to get the result
@@ -124,6 +127,9 @@ func updateBannerStartedTimeHandler(ctx *context) {
 	isOverlap := service.Schedule.CheckJobPeriodOverlap(debug, updateBannerStartedTimeRequest.Serial, "start", timestamp)
 	if !isOverlap {
 		service.Schedule.AddJob("DisplayBanner", updateBannerStartedTimeRequest.Serial, "start", timestamp)
+	} else {
+		conn.Write([]byte("Timestamp periods is overlap!"))
+		return
 	}
 
 	// if the display banner update immediately, delay 200ms to get the result
@@ -143,6 +149,12 @@ func updateBannerExpiredTimeHandler(ctx *context) {
 		log.Printf("Server|updateBannerExpiredTimeHandler|JsonUnmarshal|error:%v", err)
 	}
 
+	startedTime, _ := service.Schedule.GetJobPeriods(updateBannerExpiredTimeRequest.Serial)
+	if startedTime == "" {
+		conn.Write([]byte("Start time is not set yet!"))
+		return
+	}
+
 	timestamp := time.Unix(int64(updateBannerExpiredTimeRequest.ExpiredTime), 0)
 
 	debug := false
@@ -153,9 +165,12 @@ func updateBannerExpiredTimeHandler(ctx *context) {
 		}
 	}
 
-	isOverlap := service.Schedule.CheckJobPeriodOverlap(debug, updateBannerExpiredTimeRequest.Serial, "start", timestamp)
+	isOverlap := service.Schedule.CheckJobPeriodOverlap(debug, updateBannerExpiredTimeRequest.Serial, "expire", timestamp)
 	if !isOverlap {
 		service.Schedule.AddJob("HideBanner", updateBannerExpiredTimeRequest.Serial, "expire", timestamp)
+	} else {
+		conn.Write([]byte("Timestamp periods is overlap!"))
+		return
 	}
 
 	// if the display banner update immediately, delay 200ms to get the result

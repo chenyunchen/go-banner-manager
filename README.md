@@ -24,12 +24,13 @@ make build
 **Command:**
 
 ```bash
-./banner-manager-server 
+> ./banner-manager-server 
 ```
 **For Example:**
 
 ```bash
-./banner-manager-server -tcp=0.0.0.0:8080
+> ./banner-manager-server -tcp=0.0.0.0:8080
+2019/05/27 21:49:33 Starting tcp server.
 ```
 
 ### Run the client
@@ -45,25 +46,56 @@ make build
 **Command:**
 
 ```bash
-./banner-manager-client
+> ./banner-manager-client
 ```
 
 **For Example:**
 
+`get` (If there's no banner for update)
+
 ```bash
-./banner-manager-client -action=get
+> ./banner-manager-client -action=get
+2019/05/27 21:50:23 []
 ```
+`update`
+
 ```bash
-./banner-manager-client -action=update -serial=1 -start=1558849123 -expire=1561873123
+> ./banner-manager-client -action=update -serial=1 -start=1558849123 -expire=1561873123
+2019/05/27 21:51:57 Display Banner:
+2019/05/27 21:51:57 Serial: 1
+2019/05/27 21:51:57 Event: Mercari Promotion
+2019/05/27 21:51:57 Text: 20% off
+2019/05/27 21:51:57 Image: https://www.mercari.com/jp/assets/img/common/jp/ogp_new.png
+2019/05/27 21:51:57 URL: https://www.mercari.com
+2019/05/27 21:51:57 Started Time: 2019-05-26 13:38:43 +0800 CST
+2019/05/27 21:51:57 Expired Time: 2019-06-30 13:38:43 +0800 CST
 ```
+`update_start` (If the banner don't have expiredTime before)
+
+ExpiredTime: `2099-12-31 08:00:00`
+
 ```bash
-./banner-manager-client -action=update_start -serial=1 -start=1558849123
+> ./banner-manager-client -action=update_start -serial=2 -start=1558849123
+2019/05/27 21:54:52 Display Banner:
+2019/05/27 21:54:52 Serial: 2
+2019/05/27 21:54:52 Event: Merpay Reward Point
+2019/05/27 21:54:52 Text: 2% every transaction
+2019/05/27 21:54:52 Image: https://jp.merpay.com/assets/homeServiceTeaser-summary.png
+2019/05/27 21:54:52 URL: https://jp.merpay.com
+2019/05/27 21:54:52 Started Time: 2019-05-26 13:38:43 +0800 CST
+2019/05/27 21:54:52 Expired Time: 2099-12-31 08:00:00 +0800 CST
 ```
+`update_expire` (If the banner don't have startedTime before)
+
 ```bash
-./banner-manager-client -action=update_expire -serial=1 -expire=1561873123
+> ./banner-manager-client -action=update_expire -serial=3 -expire=1561873123
+2019/05/27 22:32:29 Start time is not set yet!
 ```
+`clear_all_timers`
+
 ```bash
-./banner-manager-client -action=clear_all_timers
+> ./banner-manager-client -action=clear_all_timers
+2019/05/27 22:02:01 []
 ```
 
 ## Overview
