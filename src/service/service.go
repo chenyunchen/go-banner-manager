@@ -8,13 +8,15 @@ import (
 	"4670e1812919d92b8cf4e33ac38bc40e449521da/src/data/fileData"
 )
 
+// Service is the structure for manager services
 type Service struct {
 	Schedule      *ScheduledJobService
 	DataManager   data.Manager
 	Config        *config.Config
-	DisplayBanner map[uint16]data.BannerInfo
+	ActiveBanners map[uint16]data.BannerInfo
 }
 
+// New will create service
 func New(path string) *Service {
 	config, err := config.Read(path)
 	if err != nil {
@@ -22,7 +24,7 @@ func New(path string) *Service {
 	}
 
 	dataManager := fileData.New(config.Data)
-	displayBanner := make(map[uint16]data.BannerInfo)
+	activeBanners := make(map[uint16]data.BannerInfo)
 
 	schedule := NewScheduledJobService()
 	schedule.Handle("DisplayBanner", func(serial uint16) {
@@ -31,16 +33,16 @@ func New(path string) *Service {
 			log.Printf("Service|Schedule|DisplayBanner|GetBanner|error:%v", err)
 			return
 		}
-		displayBanner[serial] = banner
+		activeBanners[serial] = banner
 	})
 	schedule.Handle("HideBanner", func(serial uint16) {
-		delete(displayBanner, serial)
+		delete(activeBanners, serial)
 	})
 
 	return &Service{
 		Config:        &config,
 		DataManager:   dataManager,
-		DisplayBanner: displayBanner,
+		ActiveBanners: activeBanners,
 		Schedule:      schedule,
 	}
 }

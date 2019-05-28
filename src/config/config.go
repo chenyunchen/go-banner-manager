@@ -6,11 +6,13 @@ import (
 	"os"
 )
 
+// Config is the structure for server
 type Config struct {
 	Data      string   `json:"data"`
 	WhiteList []string `json:"whiteList"`
 }
 
+// Read will read config file
 func Read(path string) (c Config, err error) {
 	file, err := os.Open(path)
 	if err != nil {

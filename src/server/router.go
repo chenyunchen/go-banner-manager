@@ -1,16 +1,17 @@
 package main
 
 import (
-	"4670e1812919d92b8cf4e33ac38bc40e449521da/src/service"
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"log"
+
+	"4670e1812919d92b8cf4e33ac38bc40e449521da/src/service"
 )
 
 type fn func(*context)
 
+// context contains service and input from client side
 type context struct {
 	service *service.Service
 	input   *Packet
@@ -24,6 +25,7 @@ func NewContext(sp *service.Service, input *Packet) *context {
 	}
 }
 
+// router contains cmd mapping function and handle connection
 type router struct {
 	handlers       map[uint16]fn
 	service        *service.Service
@@ -39,6 +41,7 @@ func NewRouter(sp *service.Service) *router {
 	}
 }
 
+// NewRouter creates a new handler
 func NewHandler(f func(*context)) fn {
 	return fn(f)
 }
@@ -50,14 +53,6 @@ func (r *router) Handle(cmd uint16, fn fn) error {
 		return fmt.Errorf("Router|Handle|CMDOccupied|cmd:%d", cmd)
 	}
 	r.handlers[cmd] = fn
-	return nil
-}
-
-func (r *router) HandleConnected(f func(conn Conn)) error {
-	if r.onConnected != nil {
-		return errors.New("Router|HandleConnected|ConnectHandlerExists")
-	}
-	r.onConnected = f
 	return nil
 }
 

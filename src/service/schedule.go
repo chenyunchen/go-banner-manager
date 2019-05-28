@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+const (
+	Min_Timestamp = 28800      // Jan 01 1970. (UTC)
+	Max_Timestamp = 4102358400 // Dec 31 2099. (UTC)
+)
+
 type fn func(uint16)
 
 //  ScheduledJob represents a job service info
@@ -23,13 +28,13 @@ func NewScheduledJobService() *ScheduledJobService {
 }
 
 // GetJobPeriods get a job periods
-func (s *ScheduledJobService) GetJobPeriods(serial uint16) (startedTime string, expiredTime string) {
+func (s *ScheduledJobService) GetJobPeriods(serial uint16) (startedTime time.Time, expiredTime time.Time) {
 	_, ok := s.periods[serial]
 	if !ok {
 		return
 	}
 
-	return s.periods[serial][0].In(time.Local).String(), s.periods[serial][1].In(time.Local).String()
+	return s.periods[serial][0], s.periods[serial][1]
 }
 
 // GetAllInActiveJobSerials get all inactive job serials
@@ -48,8 +53,8 @@ func (s *ScheduledJobService) CheckJobPeriodOverlap(debug bool, serial uint16, t
 	_, ok := s.periods[serial]
 	if !ok {
 		s.periods[serial] = make([]time.Time, 2)
-		s.periods[serial][0] = time.Unix(28800, 0)      // Jan 01 1970. (UTC)
-		s.periods[serial][1] = time.Unix(4102358400, 0) // Dec 31 2099. (UTC)
+		s.periods[serial][0] = time.Unix(Min_Timestamp, 0)
+		s.periods[serial][1] = time.Unix(Max_Timestamp, 0)
 	}
 
 	if tag == "start" {

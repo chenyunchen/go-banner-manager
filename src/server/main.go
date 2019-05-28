@@ -54,6 +54,7 @@ func main() {
 	router.Handle(entity.UpdateBannerExpiredTimeRequest_CMD, NewHandler(updateBannerExpiredTimeHandler))
 	router.Handle(entity.ClearAllBannerTimersRequest_CMD, NewHandler(clearAllBannerTimersHandler))
 
+	// TCP Connection Handle
 	for {
 		conn, err := lis.Accept()
 		if err != nil {

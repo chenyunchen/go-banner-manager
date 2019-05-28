@@ -8,23 +8,34 @@ import (
 	"4670e1812919d92b8cf4e33ac38bc40e449521da/src/entity"
 )
 
+const (
+	Max_Timestamp = 4102358400 // Dec 31 2099. (UTC)
+)
+
+// getBannersHandler get banners and if the connection from white list, display inactive banner
 func getBannersHandler(ctx *context) {
 	service, conn, _ := ctx.service, ctx.input.Conn, ctx.input.Content
 	defer conn.Close()
 
-	banners := []entity.Banner{}
-	for _, banner := range service.DisplayBanner {
+	// if there have two active banner, only display the expired time early one.
+	banners := make([]entity.Banner, 1)
+	minExpiredTime := time.Unix(Max_Timestamp, 0)
+	for _, banner := range service.ActiveBanners {
 		serial := banner.GetSerial()
 		startedTime, expiredTime := service.Schedule.GetJobPeriods(serial)
-		banners = append(banners, entity.Banner{
-			Serial:      serial,
-			Event:       banner.GetEvent(),
-			Text:        banner.GetText(),
-			Image:       banner.GetImage(),
-			URL:         banner.GetURL(),
-			StartedTime: startedTime,
-			ExpiredTime: expiredTime,
-		})
+
+		if expiredTime.Unix() < minExpiredTime.Unix() {
+			minExpiredTime = expiredTime
+			banners[0] = entity.Banner{
+				Serial:      serial,
+				Event:       banner.GetEvent(),
+				Text:        banner.GetText(),
+				Image:       banner.GetImage(),
+				URL:         banner.GetURL(),
+				StartedTime: startedTime.In(time.Local).String(),
+				ExpiredTime: expiredTime.In(time.Local).String(),
+			}
+		}
 	}
 
 	debug := false
@@ -35,24 +46,29 @@ func getBannersHandler(ctx *context) {
 		}
 	}
 
+	// if there have two active banner, only display the expired time early one.
 	if debug {
 		for _, serial := range service.Schedule.GetAllInActiveJobSerials() {
 			startedTime, expiredTime := service.Schedule.GetJobPeriods(serial)
-			banner, err := service.DataManager.GetBanner(serial)
-			if err != nil {
-				log.Printf("getBannersHandler|service|GetBanner|error:%v", err)
-				continue
-			}
 
-			banners = append(banners, entity.Banner{
-				Serial:      serial,
-				Event:       banner.GetEvent(),
-				Text:        banner.GetText(),
-				Image:       banner.GetImage(),
-				URL:         banner.GetURL(),
-				StartedTime: startedTime,
-				ExpiredTime: expiredTime,
-			})
+			if expiredTime.Unix() < minExpiredTime.Unix() {
+				minExpiredTime = expiredTime
+				banner, err := service.DataManager.GetBanner(serial)
+				if err != nil {
+					log.Printf("getBannersHandler|service|GetBanner|error:%v", err)
+					continue
+				}
+
+				banners[0] = entity.Banner{
+					Serial:      serial,
+					Event:       banner.GetEvent(),
+					Text:        banner.GetText(),
+					Image:       banner.GetImage(),
+					URL:         banner.GetURL(),
+					StartedTime: startedTime.In(time.Local).String(),
+					ExpiredTime: expiredTime.In(time.Local).String(),
+				}
+			}
 		}
 	}
 
@@ -67,6 +83,7 @@ func getBannersHandler(ctx *context) {
 	return
 }
 
+// updateBannerHandler update banner with started time and expired time
 func updateBannerHandler(ctx *context) {
 	service, conn, content := ctx.service, ctx.input.Conn, ctx.input.Content
 	defer conn.Close()
@@ -93,7 +110,7 @@ func updateBannerHandler(ctx *context) {
 		service.Schedule.AddJob("DisplayBanner", updateBannerRequest.Serial, "start", startedTime)
 		service.Schedule.AddJob("HideBanner", updateBannerRequest.Serial, "expire", expiredTime)
 	} else {
-		conn.Write([]byte("Timestamp periods is overlap!"))
+		conn.Write([]byte("Timestamp periods is overlap! Only one banner can be actived."))
 		return
 	}
 
@@ -104,6 +121,7 @@ func updateBannerHandler(ctx *context) {
 	return
 }
 
+// updateBannerStartedTimeHandler update banner started time and expired time is 2099/12/31 by default
 func updateBannerStartedTimeHandler(ctx *context) {
 	service, conn, content := ctx.service, ctx.input.Conn, ctx.input.Content
 	defer conn.Close()
@@ -128,7 +146,7 @@ func updateBannerStartedTimeHandler(ctx *context) {
 	if !isOverlap {
 		service.Schedule.AddJob("DisplayBanner", updateBannerStartedTimeRequest.Serial, "start", timestamp)
 	} else {
-		conn.Write([]byte("Timestamp periods is overlap!"))
+		conn.Write([]byte("Timestamp periods is overlap! Only one banner can be actived."))
 		return
 	}
 
@@ -139,6 +157,7 @@ func updateBannerStartedTimeHandler(ctx *context) {
 	return
 }
 
+// updateBannerExpiredTimeHandler update banner expired time if started time was set before
 func updateBannerExpiredTimeHandler(ctx *context) {
 	service, conn, content := ctx.service, ctx.input.Conn, ctx.input.Content
 	defer conn.Close()
@@ -150,7 +169,7 @@ func updateBannerExpiredTimeHandler(ctx *context) {
 	}
 
 	startedTime, _ := service.Schedule.GetJobPeriods(updateBannerExpiredTimeRequest.Serial)
-	if startedTime == "" {
+	if startedTime.String() == "0001-01-01 00:00:00 +0000 UTC" {
 		conn.Write([]byte("Start time is not set yet!"))
 		return
 	}
@@ -169,7 +188,7 @@ func updateBannerExpiredTimeHandler(ctx *context) {
 	if !isOverlap {
 		service.Schedule.AddJob("HideBanner", updateBannerExpiredTimeRequest.Serial, "expire", timestamp)
 	} else {
-		conn.Write([]byte("Timestamp periods is overlap!"))
+		conn.Write([]byte("Timestamp periods is overlap! Only one banner can be actived."))
 		return
 	}
 
@@ -180,6 +199,7 @@ func updateBannerExpiredTimeHandler(ctx *context) {
 	return
 }
 
+// clearAllBannerTimersHandler clear all the banner timer and all the display banner
 func clearAllBannerTimersHandler(ctx *context) {
 	service, conn, _ := ctx.service, ctx.input.Conn, ctx.input.Content
 	defer conn.Close()

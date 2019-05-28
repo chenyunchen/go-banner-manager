@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// tcpConn contains a net.Conn
 type tcpConn struct {
 	conn net.Conn
 }
@@ -41,6 +42,7 @@ func (c tcpConn) Close() error {
 	return c.conn.Close()
 }
 
+// NewTCPConn will new a tcpConn from net.Conn
 func NewTCPConn(conn net.Conn) tcpConn {
 	return tcpConn{
 		conn: conn,

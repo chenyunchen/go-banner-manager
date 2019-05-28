@@ -11,7 +11,7 @@
 ### Build the binary
 
 ```bash
-make build
+> make build
 ```
 
 ### Run the server
@@ -98,6 +98,9 @@ ExpiredTime: `2099-12-31 08:00:00`
 2019/05/27 22:02:01 []
 ```
 
+## Test Case
+⚠️ Working ⚠️ 
+
 ## Overview
 
 * [1. Usage](#usage)
@@ -178,8 +181,8 @@ type BannersManager interface {
 
 ```json
 {
-  "data": "./data/fake.json",
-  "whiteList": ["10.0.0.1", "10.0.0.2"]
+	"data": "./data/fake.json",
+	"whiteList": ["10.0.0.1", "10.0.0.2"]
 }
 ```
 

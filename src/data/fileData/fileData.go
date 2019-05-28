@@ -14,12 +14,14 @@ type FileData struct {
 	path string
 }
 
+// New will new a FileData
 func New(path string) *FileData {
 	return &FileData{
 		path: path,
 	}
 }
 
+// GetBanners read banners from fake data
 func (d *FileData) GetBanners() (banners []data.BannerInfo, err error) {
 	file, err := os.Open(d.path)
 	if err != nil {
@@ -43,6 +45,7 @@ func (d *FileData) GetBanners() (banners []data.BannerInfo, err error) {
 	return
 }
 
+// GetBanner read one banner from fake data
 func (d *FileData) GetBanner(serial uint16) (banner data.BannerInfo, err error) {
 	file, err := os.Open(d.path)
 	if err != nil {
