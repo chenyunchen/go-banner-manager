@@ -1,3 +1,5 @@
+# banner manager version
+APPLICATION_VERSION = latest
 BINARY = banner-manager
 
 ## command
@@ -18,3 +20,7 @@ src.build-server:
 .PHONY: src.build-client
 src.build-client:
 	$(GO) build -v -o ${BINARY}-client ./src/client/...
+
+.PHONY: dockerfile.build
+dockerfile.build:
+	docker build --tag mercari/banner-manager:$(APPLICATION_VERSION) .

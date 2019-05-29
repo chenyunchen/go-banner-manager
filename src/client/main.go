@@ -38,7 +38,7 @@ func main() {
 		getBanners(conn)
 	case "update":
 		if serial == "" || start == "" || expire == "" {
-			log.Fatalf("You should fill the serial number, start time and expire time.")
+
 		}
 		serial, err := strconv.ParseUint(serial, 10, 64)
 		if err != nil {
@@ -50,7 +50,7 @@ func main() {
 		}
 		expiredTime, err := strconv.ParseUint(expire, 10, 64)
 		if err != nil {
-			log.Fatalf("Please fill the corret start time number.")
+			log.Fatalf("Please fill the corret expire time number.")
 		}
 
 		updateBanner(conn, uint16(serial), uint32(startedTime), uint32(expiredTime))
@@ -89,22 +89,21 @@ func main() {
 	scannerConn := bufio.NewScanner(conn)
 	for scannerConn.Scan() {
 		b := scannerConn.Bytes()
+		// TODO: Not using bytes length to judge if the error occur. This will fail if the origin data's size is small.
 		if len(b) <= 100 {
 			log.Println(string(b))
 			break
 		}
-		banners := []entity.Banner{}
-		json.Unmarshal(b, &banners)
+		banner := entity.Banner{}
+		json.Unmarshal(b, &banner)
 		log.Println("Display Banner:")
-		for _, banner := range banners {
-			log.Printf("Serial: %d\n", banner.Serial)
-			log.Printf("Event: %s\n", banner.Event)
-			log.Printf("Text: %s\n", banner.Text)
-			log.Printf("Image: %s\n", banner.Image)
-			log.Printf("URL: %s\n", banner.URL)
-			log.Printf("Started Time: %s\n", banner.StartedTime)
-			log.Printf("Expired Time: %s\n", banner.ExpiredTime)
-		}
+		log.Printf("Serial: %d\n", banner.Serial)
+		log.Printf("Event: %s\n", banner.Event)
+		log.Printf("Text: %s\n", banner.Text)
+		log.Printf("Image: %s\n", banner.Image)
+		log.Printf("URL: %s\n", banner.URL)
+		log.Printf("Started Time: %s\n", banner.StartedTime)
+		log.Printf("Expired Time: %s\n", banner.ExpiredTime)
 		break
 	}
 }

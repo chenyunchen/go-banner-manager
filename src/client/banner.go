@@ -8,6 +8,7 @@ import (
 	"4670e1812919d92b8cf4e33ac38bc40e449521da/src/entity"
 )
 
+// getBanners get banners and if the connection from white list, display inactive banner
 func getBanners(conn net.Conn) {
 	size := make([]byte, 4)
 	binary.BigEndian.PutUint32(size, uint32(2))
@@ -18,6 +19,7 @@ func getBanners(conn net.Conn) {
 	conn.Write(cmd)
 }
 
+// updateBanner update banner with started time and expired time
 func updateBanner(conn net.Conn, serial uint16, startedTime, expiredTime uint32) {
 	data := entity.UpdateBannerRequest{
 		Serial:      serial,
@@ -35,6 +37,7 @@ func updateBanner(conn net.Conn, serial uint16, startedTime, expiredTime uint32)
 	conn.Write(append(output, b...))
 }
 
+// updateBannerStartedTime update banner started time and expired time is 2099/12/31 by default
 func updateBannerStartedTime(conn net.Conn, serial uint16, startedTime uint32) {
 	data := entity.UpdateBannerStartedTimeRequest{
 		Serial:      serial,
@@ -51,6 +54,7 @@ func updateBannerStartedTime(conn net.Conn, serial uint16, startedTime uint32) {
 	conn.Write(append(output, b...))
 }
 
+// updateBannerExpiredTime update banner expired time if started time was set before
 func updateBannerExpiredTime(conn net.Conn, serial uint16, expiredTime uint32) {
 	data := entity.UpdateBannerExpiredTimeRequest{
 		Serial:      serial,
@@ -67,6 +71,7 @@ func updateBannerExpiredTime(conn net.Conn, serial uint16, expiredTime uint32) {
 	conn.Write(append(output, b...))
 }
 
+// clearAllBannerTimers clear all the banner timer and all the display banner
 func clearAllBannerTimers(conn net.Conn) {
 	size := make([]byte, 4)
 	binary.BigEndian.PutUint32(size, uint32(2))

@@ -18,7 +18,7 @@ func getBannersHandler(ctx *context) {
 	defer conn.Close()
 
 	// if there have two active banner, only display the expired time early one.
-	banners := make([]entity.Banner, 1)
+	var displayBanner entity.Banner
 	minExpiredTime := time.Unix(Max_Timestamp, 0)
 	for _, banner := range service.ActiveBanners {
 		serial := banner.GetSerial()
@@ -26,7 +26,7 @@ func getBannersHandler(ctx *context) {
 
 		if expiredTime.Unix() < minExpiredTime.Unix() {
 			minExpiredTime = expiredTime
-			banners[0] = entity.Banner{
+			displayBanner = entity.Banner{
 				Serial:      serial,
 				Event:       banner.GetEvent(),
 				Text:        banner.GetText(),
@@ -59,7 +59,7 @@ func getBannersHandler(ctx *context) {
 					continue
 				}
 
-				banners[0] = entity.Banner{
+				displayBanner = entity.Banner{
 					Serial:      serial,
 					Event:       banner.GetEvent(),
 					Text:        banner.GetText(),
@@ -71,8 +71,12 @@ func getBannersHandler(ctx *context) {
 			}
 		}
 	}
+	if displayBanner.Serial == 0 {
+		conn.Write([]byte("There is no banners available for display!"))
+		return
+	}
 
-	b, err := json.Marshal(banners)
+	b, err := json.Marshal(displayBanner)
 	if err != nil {
 		log.Printf("Server|getBannersHandler|JsonMarshal|error:%v", err)
 		return

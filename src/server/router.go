@@ -1,12 +1,11 @@
 package main
 
 import (
+	"4670e1812919d92b8cf4e33ac38bc40e449521da/src/service"
 	"bytes"
 	"encoding/binary"
 	"fmt"
 	"log"
-
-	"4670e1812919d92b8cf4e33ac38bc40e449521da/src/service"
 )
 
 type fn func(*context)
@@ -27,10 +26,9 @@ func NewContext(sp *service.Service, input *Packet) *context {
 
 // router contains cmd mapping function and handle connection
 type router struct {
-	handlers       map[uint16]fn
-	service        *service.Service
-	onConnected    func(conn Conn)
-	onDisConnected func(conn Conn)
+	handlers    map[uint16]fn
+	service     *service.Service
+	onConnected func(conn Conn)
 }
 
 // NewRouter creates a new router
@@ -62,10 +60,10 @@ func (r *router) OnConnected(conn Conn) {
 		var (
 			contentSize uint32
 			isHead      bool = true
-			buffer           = bytes.NewBuffer(make([]byte, 0, 200))
-			bytes            = make([]byte, 200)
+			buffer           = bytes.NewBuffer(make([]byte, 0, 1024))
+			bytes            = make([]byte, 1024)
 			head             = make([]byte, 4)
-			content          = make([]byte, 200)
+			content          = make([]byte, 1024)
 		)
 		readLen, err := conn.Read(bytes)
 		if err != nil {
@@ -91,6 +89,8 @@ func (r *router) OnConnected(conn Conn) {
 				}
 			}
 			if !isHead {
+				log.Printf("Packet Receive: %v bytes\n", buffer.Len())
+				log.Printf("TCP Shoud Send: %v bytes\n", contentSize)
 				if buffer.Len() >= int(contentSize) {
 					_, err := buffer.Read(content[:contentSize])
 					if err != nil {
@@ -110,15 +110,6 @@ func (r *router) OnConnected(conn Conn) {
 
 		}
 	}
-}
-
-// OnDisconnected implements the EventHandler interface
-func (r *router) OnDisconnected(conn Conn) {
-	if r.onDisConnected != nil {
-		r.onDisConnected(conn)
-	}
-
-	return
 }
 
 // OnPacket implements the EventHandler interface

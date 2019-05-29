@@ -55,7 +55,7 @@
 
 ```bash
 > ./banner-manager-client -action=get
-2019/05/27 21:50:23 []
+2019/05/27 21:50:23 There is no banners available for display!
 ```
 `update`
 
@@ -95,11 +95,162 @@ ExpiredTime: `2099-12-31 08:00:00`
 
 ```bash
 > ./banner-manager-client -action=clear_all_timers
-2019/05/27 22:02:01 []
+2019/05/27 22:02:01 There is no banners available for display!
+```
+
+## Internal IP Address Environment
+
+### Build banner manager docker image
+
+```bash
+> make dockerfile.build
+```
+
+### Create docker subnet
+
+```bash
+> docker network create --subnet=10.0.0.0/24 mercari 
+```
+
+### Run banner manager server on `10.0.0.3`
+
+```bash
+> docker run --net mercari --ip 10.0.0.3 -it mercari/banner-manager sh 
+/banner-manager # ./banner-manager-server 
+2019/05/29 04:02:32 Starting tcp server.
+```
+
+### Run banner manager client on `10.0.0.1` or `10.0.0.2`
+
+```bash
+> docker run --net mercari --ip 10.0.0.2 -it mercari/banner-manager sh 
+/banner-manager # ./banner-manager-client -tcp=10.0.0.3:8080
+2019/05/29 04:03:46 There is no banners available for display!
 ```
 
 ## Test Case
-⚠️ Working ⚠️ 
+
+### Set individually for each banner
+
+|Serial|Event|Started Timestamp(ISO 8601)|Expired Timestamp(ISO 8601)|
+|:-:|:-:|:-:|:-:|
+|1|Mercari Promotion|1559072574(2019-05-29T03:42:54+08:00)|1561824000(2019-06-30T00:00:00+08:00)|
+|2|Merpay Reward Point|1561938114(2019-07-01T07:41:54+08:00)|1564530114(2019-07-31T07:41:54+08:00)|
+|3|Red Cross Donation|1564616514(2019-08-01T07:41:54+08:00)|1567208514(2019-08-31T07:41:54+08:00)|
+|4|2020 Tokyo Olympics|1567294914(2019-09-01T07:41:54+08:00)|1569800514(2019-09-30T07:41:54+08:00)|
+|5|Tokyo Golang Developers|1569886914(2019-10-01T07:41:54+08:00)|1572478914(2019-10-31T07:41:54+08:00)|
+
+```bash
+> ./banner-manager-client -action=update -serial=1 -start=1559072574 -expire=1561824000
+> ./banner-manager-client -action=update -serial=2 -start=1561938114 -expire=1564530114
+> ./banner-manager-client -action=update -serial=3 -start=1564616514 -expire=1567208514
+> ./banner-manager-client -action=update -serial=4 -start=1567294914 -expire=1569800514
+> ./banner-manager-client -action=update -serial=5 -start=1569886914 -expire=1572478914
+
+2019/05/29 16:36:26 Display Banner:
+2019/05/29 16:36:26 Serial: 1
+2019/05/29 16:36:26 Event: Mercari Promotion
+2019/05/29 16:36:26 Text: 20% off
+2019/05/29 16:36:26 Image: https://www.mercari.com/jp/assets/img/common/jp/ogp_new.png
+2019/05/29 16:36:26 URL: https://www.mercari.com
+2019/05/29 16:36:26 Started Time: 2019-05-29 03:42:54 +0800 CST
+2019/05/29 16:36:26 Expired Time: 2019-06-30 00:00:00 +0800 CST
+```
+
+### Only one banner can be displayed at a time 
+
+|Serial|Event|Started Timestamp(ISO 8601)|Expired Timestamp(ISO 8601)|
+|:-:|:-:|:-:|:-:|
+|1|Mercari Promotion|1559072574(2019-05-29T03:42:54+08:00)|1561824000(2019-06-30T00:00:00+08:00)|
+|2|Merpay Reward Point|1559000514(2019-05-28T07:41:54+08:00)|1560555714(2019-06-15T07:41:54+08:00)|
+
+```bash
+> ./banner-manager-client -action=update -serial=1 -start=1559072574 -expire=1561824000
+2019/05/29 16:49:55 Display Banner:
+2019/05/29 16:49:55 Serial: 1
+2019/05/29 16:49:55 Event: Mercari Promotion
+2019/05/29 16:49:55 Text: 20% off
+2019/05/29 16:49:55 Image: https://www.mercari.com/jp/assets/img/common/jp/ogp_new.png
+2019/05/29 16:49:55 URL: https://www.mercari.com
+2019/05/29 16:49:55 Started Time: 2019-05-29 03:42:54 +0800 CST
+2019/05/29 16:49:55 Expired Time: 2019-06-30 00:00:00 +0800 CST
+> ./banner-manager-client -action=update -serial=2 -start=1559000514 -expire=1560555714
+2019/05/29 16:50:20 Timestamp periods is overlap! Only one banner can be actived.
+```
+
+### Display the banner in period
+
+**Display the banner for 1 minute.**
+
+|Serial|Event|Started Timestamp(ISO 8601)|Expired Timestamp(ISO 8601)|
+|:-:|:-:|:-:|:-:|
+|1|Mercari Promotion|1559120400(2019-05-29T17:00:00+08:00)|1559120460(2019-05-29T17:01:00+08:00)|
+
+```bash
+> ./banner-manager-client -action=update -serial=1 -start=1559120400 -expire=1559120460 
+2019/05/29 16:59:48 There is no banners available for display!
+> ./banner-manager-client -action=get 
+2019/05/29 17:00:18 Display Banner:
+2019/05/29 17:00:18 Serial: 1
+2019/05/29 17:00:18 Event: Mercari Promotion
+2019/05/29 17:00:18 Text: 20% off
+2019/05/29 17:00:18 Image: https://www.mercari.com/jp/assets/img/common/jp/ogp_new.png
+2019/05/29 17:00:18 URL: https://www.mercari.com
+2019/05/29 17:00:18 Started Time: 2019-05-29 17:00:00 +0800 CST
+2019/05/29 17:00:18 Expired Time: 2019-05-29 17:01:00 +0800 CST
+> ./banner-manager-client -action=get
+2019/05/29 17:01:05 There is no banners available for display!
+```
+
+### Display the future banner
+
+**Client IP Address: `10.0.0.1` or `10.0.0.2`**
+
+|Serial|Event|Started Timestamp(ISO 8601)|Expired Timestamp(ISO 8601)|
+|:-:|:-:|:-:|:-:|
+|2|Merpay Reward Point|1561938114(2019-07-01T07:41:54+08:00)|1564530114(2019-07-31T07:41:54+08:00)|
+
+```bash
+> ./banner-manager-client -tcp=10.0.0.3:8080 -action=update -serial=2 -start=1561938114 -expire=1564530114
+2019/05/29 09:36:49 Display Banner:
+2019/05/29 09:36:49 Serial: 2
+2019/05/29 09:36:49 Event: Merpay Reward Point
+2019/05/29 09:36:49 Text: 2% every transaction
+2019/05/29 09:36:49 Image: https://jp.merpay.com/assets/homeServiceTeaser-summary.png
+2019/05/29 09:36:49 URL: https://jp.merpay.com
+2019/05/29 09:36:49 Started Time: 2019-06-30 23:41:54 +0000 UTC
+2019/05/29 09:36:49 Expired Time: 2019-07-30 23:41:54 +0000 UTC
+```
+
+### Two active banner and display the expired time early one.
+
+**Client IP Address: `10.0.0.1` or `10.0.0.2`**
+
+|Serial|Event|Started Timestamp(ISO 8601)|Expired Timestamp(ISO 8601)|
+|:-:|:-:|:-:|:-:|
+|1|Mercari Promotion|1559072574(2019-05-29T03:42:54+08:00)|1561824000(2019-06-30T00:00:00+08:00)|
+|2|Merpay Reward Point|1559000514(2019-05-28T07:41:54+08:00)|1560555714(2019-06-15T07:41:54+08:00)|
+
+```bash
+> ./banner-manager-client -tcp=10.0.0.3:8080 -action=update -serial=1 -start=1559072574 -expire=1561824000
+2019/05/29 09:42:37 Display Banner:
+2019/05/29 09:42:37 Serial: 1
+2019/05/29 09:42:37 Event: Mercari Promotion
+2019/05/29 09:42:37 Text: 20% off
+2019/05/29 09:42:37 Image: https://www.mercari.com/jp/assets/img/common/jp/ogp_new.png
+2019/05/29 09:42:37 URL: https://www.mercari.com
+2019/05/29 09:42:37 Started Time: 2019-05-28 19:42:54 +0000 UTC
+2019/05/29 09:42:37 Expired Time: 2019-06-29 16:00:00 +0000 UTC
+> ./banner-manager-client -tcp=10.0.0.3:8080 -action=update -serial=2 -start=1559000514 -expire=1560555714
+2019/05/29 09:43:10 Display Banner:
+2019/05/29 09:43:10 Serial: 2
+2019/05/29 09:43:10 Event: Merpay Reward Point
+2019/05/29 09:43:10 Text: 2% every transaction
+2019/05/29 09:43:10 Image: https://jp.merpay.com/assets/homeServiceTeaser-summary.png
+2019/05/29 09:43:10 URL: https://jp.merpay.com
+2019/05/29 09:43:10 Started Time: 2019-05-27 23:41:54 +0000 UTC
+2019/05/29 09:43:10 Expired Time: 2019-06-14 23:41:54 +0000 UTC
+```
 
 ## Overview
 
@@ -195,20 +346,24 @@ type BannersManager interface {
 <a name="b1"></a>
 **GetBannersRequest_CMD (0x0001)**
 
+Request
+
+```json
+{}
+```
+
 Response
 
 ```json
-[
-	{
-		"serial":      <serial(uint16)>,
-		"event":       <event(string)>,
-		"text":        <text(string)>,
-		"image":       <image(string)>,
-		"url":         <url(string)>,
-		"startedTime": <url(string)>,
-		"expiredTime": <url(string)>,
-	}
-]
+{
+	"serial":      <serial(uint16)>,
+	"event":       <event(string)>,
+	"text":        <text(string)>,
+	"image":       <image(string)>,
+	"url":         <url(string)>,
+	"startedTime": <url(string)>,
+	"expiredTime": <url(string)>,
+}
 ```
 
 <a name="b2"></a>
@@ -224,6 +379,20 @@ Request
 }
 ```
 
+Response
+
+```json
+{
+	"serial":      <serial(uint16)>,
+	"event":       <event(string)>,
+	"text":        <text(string)>,
+	"image":       <image(string)>,
+	"url":         <url(string)>,
+	"startedTime": <url(string)>,
+	"expiredTime": <url(string)>,
+}
+```
+
 <a name="b3"></a>
 **UpdateBannerStartedTimeRequest_CMD (0x0003)**
 
@@ -233,6 +402,20 @@ Request
 {
 	"serial":      <serial(uint16)>,
 	"startedTime": <start_time(uint32)>,
+}
+```
+
+Response
+
+```json
+{
+	"serial":      <serial(uint16)>,
+	"event":       <event(string)>,
+	"text":        <text(string)>,
+	"image":       <image(string)>,
+	"url":         <url(string)>,
+	"startedTime": <url(string)>,
+	"expiredTime": <url(string)>,
 }
 ```
 
@@ -248,8 +431,34 @@ Request
 }
 ```
 
+Response
+
+```json
+{
+	"serial":      <serial(uint16)>,
+	"event":       <event(string)>,
+	"text":        <text(string)>,
+	"image":       <image(string)>,
+	"url":         <url(string)>,
+	"startedTime": <url(string)>,
+	"expiredTime": <url(string)>,
+}
+```
+
 <a name="b5"></a>
 **ClearAllBannerTimersRequest_CMD (0x0005)**
+
+Request
+
+```json
+{}
+```
+
+Response
+
+```json
+{}
+```
 
 <a name="fake_data"></a>
 ## Fake Data
