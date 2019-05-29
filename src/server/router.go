@@ -8,6 +8,11 @@ import (
 	"log"
 )
 
+const (
+	BUFFER_SIZE = 1024
+	HEAD_SIZE   = 4
+)
+
 type fn func(*context)
 
 // context contains service and input from client side
@@ -48,7 +53,7 @@ func NewHandler(f func(*context)) fn {
 func (r *router) Handle(cmd uint16, fn fn) error {
 	_, present := r.handlers[cmd]
 	if present {
-		return fmt.Errorf("Router|Handle|CMDOccupied|cmd:%d", cmd)
+		return fmt.Errorf("Server|Router|Handle|CMDOccupied|cmd:%d", cmd)
 	}
 	r.handlers[cmd] = fn
 	return nil
@@ -56,36 +61,37 @@ func (r *router) Handle(cmd uint16, fn fn) error {
 
 // OnConnected implements the EventHandler interface
 func (r *router) OnConnected(conn Conn) {
+	var (
+		contentSize uint32
+		isHead      bool = true
+		buffer           = bytes.NewBuffer(make([]byte, 0, BUFFER_SIZE))
+		bytes            = make([]byte, BUFFER_SIZE)
+		head             = make([]byte, HEAD_SIZE)
+		content          = make([]byte, BUFFER_SIZE)
+	)
 	for {
-		var (
-			contentSize uint32
-			isHead      bool = true
-			buffer           = bytes.NewBuffer(make([]byte, 0, 1024))
-			bytes            = make([]byte, 1024)
-			head             = make([]byte, 4)
-			content          = make([]byte, 1024)
-		)
 		readLen, err := conn.Read(bytes)
 		if err != nil {
+			log.Printf("Server|Router|ConnRead|error:%v", err)
 			return
 		}
 		_, err = buffer.Write(bytes[0:readLen])
 		if err != nil {
-			log.Printf("Server|BufferWrite|error:%v", err)
+			log.Printf("Server|Router|BufferWrite|error:%v", err)
 			return
 		}
 		for {
 			if isHead {
-				if buffer.Len() >= 4 {
+				if buffer.Len() >= HEAD_SIZE {
 					_, err := buffer.Read(head)
 					if err != nil {
-						log.Printf("Server|BufferRead|error:%v", err)
+						log.Printf("Server|Router|BufferRead|error:%v", err)
 						return
 					}
 					contentSize = binary.BigEndian.Uint32(head)
 					isHead = false
 				} else {
-					return
+					break
 				}
 			}
 			if !isHead {
@@ -94,7 +100,7 @@ func (r *router) OnConnected(conn Conn) {
 				if buffer.Len() >= int(contentSize) {
 					_, err := buffer.Read(content[:contentSize])
 					if err != nil {
-						log.Printf("Server|BufferRead|error:%v", err)
+						log.Printf("Server|Router|BufferRead|error:%v", err)
 						return
 					}
 					input := Packet{
@@ -104,7 +110,7 @@ func (r *router) OnConnected(conn Conn) {
 					r.OnPacket(&input)
 					isHead = true
 				} else {
-					return
+					break
 				}
 			}
 
@@ -115,7 +121,7 @@ func (r *router) OnConnected(conn Conn) {
 // OnPacket implements the EventHandler interface
 func (r *router) OnPacket(packet *Packet) {
 	if len(packet.Content) < 2 {
-		log.Printf("Router|OnPacket|InvalidPacket")
+		log.Printf("Server|Router|OnPacket|InvalidPacket")
 		return
 	}
 
