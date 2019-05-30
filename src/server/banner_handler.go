@@ -99,7 +99,17 @@ func updateBannerHandler(ctx *context) {
 	}
 
 	startedTime := time.Unix(int64(updateBannerRequest.StartedTime), 0)
+	start, _ := service.Schedule.GetJobPeriods(updateBannerRequest.Serial)
+	if start.String() != "0001-01-01 00:00:00 +0000 UTC" && startedTime.Unix() < time.Now().Unix() {
+		conn.Write([]byte("Start time can not update to the past again!"))
+		return
+	}
+
 	expiredTime := time.Unix(int64(updateBannerRequest.ExpiredTime), 0)
+	if expiredTime.Unix() <= time.Now().Unix() {
+		conn.Write([]byte("Expire time can not update in the past!"))
+		return
+	}
 
 	debug := false
 	for _, addr := range service.Config.WhiteList {
@@ -125,7 +135,7 @@ func updateBannerHandler(ctx *context) {
 	return
 }
 
-// updateBannerStartedTimeHandler update banner started time and expired time is 2099/12/31 by default
+// updateBannerStartedTimeHandler update banner started time if expired time was set before
 func updateBannerStartedTimeHandler(ctx *context) {
 	service, conn, content := ctx.service, ctx.input.Conn, ctx.input.Content
 	defer conn.Close()
@@ -136,7 +146,17 @@ func updateBannerStartedTimeHandler(ctx *context) {
 		log.Printf("Server|updateBannerStartedTimeHandler|JsonUnmarshal|error:%v", err)
 	}
 
+	_, expiredTime := service.Schedule.GetJobPeriods(updateBannerStartedTimeRequest.Serial)
+	if expiredTime.String() == "0001-01-01 00:00:00 +0000 UTC" {
+		conn.Write([]byte("Expire time is not set yet!"))
+		return
+	}
+
 	timestamp := time.Unix(int64(updateBannerStartedTimeRequest.StartedTime), 0)
+	if timestamp.Unix() < time.Now().Unix() {
+		conn.Write([]byte("Start time can not update to the past!"))
+		return
+	}
 
 	debug := false
 	for _, addr := range service.Config.WhiteList {
@@ -179,6 +199,10 @@ func updateBannerExpiredTimeHandler(ctx *context) {
 	}
 
 	timestamp := time.Unix(int64(updateBannerExpiredTimeRequest.ExpiredTime), 0)
+	if timestamp.Unix() <= time.Now().Unix() {
+		conn.Write([]byte("Expire time can not update to the past!"))
+		return
+	}
 
 	debug := false
 	for _, addr := range service.Config.WhiteList {

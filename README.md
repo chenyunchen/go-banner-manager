@@ -72,18 +72,9 @@
 ```
 `update_start` (If the banner don't have expiredTime before)
 
-ExpiredTime: `2099-12-31 08:00:00`
-
 ```bash
 > ./banner-manager-client -action=update_start -serial=2 -start=1558849123
-2019/05/27 21:54:52 Display Banner:
-2019/05/27 21:54:52 Serial: 2
-2019/05/27 21:54:52 Event: Merpay Reward Point
-2019/05/27 21:54:52 Text: 2% every transaction
-2019/05/27 21:54:52 Image: https://jp.merpay.com/assets/homeServiceTeaser-summary.png
-2019/05/27 21:54:52 URL: https://jp.merpay.com
-2019/05/27 21:54:52 Started Time: 2019-05-26 13:38:43 +0800 CST
-2019/05/27 21:54:52 Expired Time: 2099-12-31 08:00:00 +0800 CST
+2019/05/27 21:54:52 Expire time is not set yet!
 ```
 `update_expire` (If the banner don't have startedTime before)
 

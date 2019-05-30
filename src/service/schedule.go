@@ -6,11 +6,6 @@ import (
 	"time"
 )
 
-const (
-	Min_Timestamp = 28800      // Jan 01 1970. (UTC)
-	Max_Timestamp = 4102358400 // Dec 31 2099. (UTC)
-)
-
 type fn func(uint16)
 
 //  ScheduledJob represents a job service info
@@ -50,13 +45,6 @@ func (s *ScheduledJobService) GetAllInActiveJobSerials() (serials []uint16) {
 
 // CheckJobPeriodExist checks a new job if period exist
 func (s *ScheduledJobService) CheckJobPeriodOverlap(debug bool, serial uint16, tag string, t time.Time) bool {
-	_, ok := s.periods[serial]
-	if !ok {
-		s.periods[serial] = make([]time.Time, 2)
-		s.periods[serial][0] = time.Unix(Min_Timestamp, 0)
-		s.periods[serial][1] = time.Unix(Max_Timestamp, 0)
-	}
-
 	if tag == "start" {
 		// if started time bigger than expired time
 		if t.Unix() >= s.periods[serial][1].Unix() {
@@ -126,19 +114,24 @@ func (s *ScheduledJobService) AddJob(route string, serial uint16, tag string, t 
 		return errors.New("ScheduledJobService|AddJob|HandlerIsNotExist")
 	}
 
+	now := time.Now()
 	for _, job := range s.jobs {
-		if job.serial == serial && job.tag == tag {
-			job.StopTimer()
-			job.SetTimer(t)
-			return nil
+		if job.serial == serial {
+			// Update current job timer if job exist
+			if job.tag == tag {
+				job.SetTimer(t)
+				if tag == "expire" {
+					return nil
+				}
+			}
+			// If job update the start time to the future, call expire handler to remove display banner
+			if tag == "start" && job.tag == "expire" && t.Unix() > now.Unix() {
+				job.handler(serial)
+				return nil
+			}
 		}
 	}
 
-	now := time.Now()
-	// Check if started time already begin and the job is not expired yet
-	if tag == "start" && t.Unix() <= now.Unix() && s.periods[serial][1].Unix() > now.Unix() {
-		t = now
-	}
 	scheduledJob := NewScheduledJob(serial, tag, handler)
 	scheduledJob.SetTimer(t)
 	s.jobs = append(s.jobs, scheduledJob)
@@ -154,6 +147,9 @@ func (s *ScheduledJobService) Handle(route string, f fn) {
 // ClearAllJobs stop all timer job in the service
 func (s *ScheduledJobService) ClearAllJobs() {
 	for _, job := range s.jobs {
+		if job.tag == "expire" {
+			job.handler(job.serial)
+		}
 		job.StopTimer()
 	}
 	s.jobs = nil
@@ -198,9 +194,6 @@ func (s *ScheduledJob) SetTimer(t time.Time) {
 
 // SetTimer stops a timer for the job
 func (s *ScheduledJob) StopTimer() {
-	if s.tag == "expire" {
-		s.handler(s.serial)
-	}
 	if s.canceled != nil {
 		s.once.Do(func() {
 			close(s.canceled)

@@ -37,7 +37,7 @@ func updateBanner(conn net.Conn, serial uint16, startedTime, expiredTime uint32)
 	conn.Write(append(output, b...))
 }
 
-// updateBannerStartedTime update banner started time and expired time is 2099/12/31 by default
+// updateBannerStartedTime update banner started time if expired time was set before
 func updateBannerStartedTime(conn net.Conn, serial uint16, startedTime uint32) {
 	data := entity.UpdateBannerStartedTimeRequest{
 		Serial:      serial,
